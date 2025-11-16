@@ -50,24 +50,46 @@ export const LAYOUTS = {
   circle: {
     name: 'circle',
     animate: true,
-    animationDuration: 500,
-    padding: 50,
+    animationDuration: 600,
+    padding: 80,
+    // Nodes arranged in concentric circles
+    spacingFactor: 1.8,
+    clockwise: true,
+    startAngle: Math.PI / 2, // Start from top
   },
   grid: {
     name: 'grid',
     animate: true,
     animationDuration: 500,
-    padding: 50,
+    padding: 60,
+    // Auto-calculate rows/cols for square-ish grid
     rows: undefined,
     cols: undefined,
+    // Sort nodes by type then label for organized grid
+    sort: (a: any, b: any) => {
+      const groupA = a.data('group');
+      const groupB = b.data('group');
+      if (groupA !== groupB) {
+        // Events first, then entities
+        return groupA === 'event' ? -1 : 1;
+      }
+      return a.data('label').localeCompare(b.data('label'));
+    },
   },
   breadthfirst: {
     name: 'breadthfirst',
     animate: true,
-    animationDuration: 500,
-    padding: 50,
+    animationDuration: 600,
+    padding: 80,
     directed: true,
-    spacingFactor: 1.5,
+    // Temporal flow: top to bottom
+    spacingFactor: 2.0,
+    // Align nodes horizontally by level
+    grid: false,
+    // Maximize spacing between levels
+    nodeDimensionsIncludeLabels: true,
+    // Auto-select root nodes (earliest events with no incoming edges)
+    roots: undefined,
   },
 } as const;
 

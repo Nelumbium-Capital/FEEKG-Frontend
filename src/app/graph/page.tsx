@@ -21,6 +21,8 @@ export default function GraphPage() {
   const [layout, setLayout] = useState<'cose' | 'circle' | 'grid' | 'breadthfirst'>('cose');
   const [nodeLimit, setNodeLimit] = useState<number>(100);
   const [minScore, setMinScore] = useState<number>(0.5);
+  const [groupByEventType, setGroupByEventType] = useState<boolean>(false);
+  const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
 
   // Fetch graph data (entities + events + edges) from AllegroGraph
   const { data: graphData, isLoading, error } = useQuery({
@@ -50,12 +52,20 @@ export default function GraphPage() {
   const filteredEvents = useMemo(() => {
     let filtered = [...events];
 
-    // Date range filter
+    // Date range filter from FilterPanel
     if (filters.startDate) {
       filtered = filtered.filter(e => e.date >= filters.startDate);
     }
     if (filters.endDate) {
       filtered = filtered.filter(e => e.date <= filters.endDate);
+    }
+
+    // Additional date range filter from header controls
+    if (dateRange.startDate) {
+      filtered = filtered.filter(e => e.date >= dateRange.startDate);
+    }
+    if (dateRange.endDate) {
+      filtered = filtered.filter(e => e.date <= dateRange.endDate);
     }
 
     // Event type filter
@@ -74,7 +84,7 @@ export default function GraphPage() {
     }
 
     return filtered;
-  }, [events, filters]);
+  }, [events, filters, dateRange]);
 
   // Stats
   const stats = {
@@ -143,6 +153,50 @@ export default function GraphPage() {
                   <option value="grid">Grid</option>
                   <option value="breadthfirst">Hierarchical</option>
                 </select>
+              </div>
+
+              {/* Group by Event Type */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="groupByType"
+                  checked={groupByEventType}
+                  onChange={(e) => setGroupByEventType(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                />
+                <label htmlFor="groupByType" className="text-sm text-gray-600 font-medium cursor-pointer">
+                  Group by Type
+                </label>
+              </div>
+            </div>
+
+            {/* Date Range Filter Row */}
+            <div className="flex items-center justify-end gap-4 mt-3 pt-3 border-t border-gray-200/50">
+              <span className="text-sm text-gray-600 font-medium">Date Range:</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={dateRange.startDate}
+                  onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
+                  className="px-3 py-1.5 text-sm border border-gray-300/50 rounded-lg bg-gray-50/50 hover:bg-white focus:bg-white focus:ring-2 focus:ring-blue-500/50 transition-all shadow-apple"
+                  placeholder="Start Date"
+                />
+                <span className="text-gray-400">to</span>
+                <input
+                  type="date"
+                  value={dateRange.endDate}
+                  onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
+                  className="px-3 py-1.5 text-sm border border-gray-300/50 rounded-lg bg-gray-50/50 hover:bg-white focus:bg-white focus:ring-2 focus:ring-blue-500/50 transition-all shadow-apple"
+                  placeholder="End Date"
+                />
+                {(dateRange.startDate || dateRange.endDate) && (
+                  <button
+                    onClick={() => setDateRange({ startDate: '', endDate: '' })}
+                    className="px-3 py-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium active:scale-95 transition-all"
+                  >
+                    Clear
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -271,6 +325,7 @@ export default function GraphPage() {
                   }
                 }}
                 layout={layout}
+                groupByEventType={groupByEventType}
               />
             </div>
           </div>

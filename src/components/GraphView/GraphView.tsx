@@ -12,6 +12,7 @@ interface GraphViewProps {
   onNodeClick?: (node: Node) => void;
   onNodeHover?: (node: Node | null) => void;
   layout?: 'cose' | 'circle' | 'grid' | 'breadthfirst';
+  groupByEventType?: boolean;
   className?: string;
 }
 
@@ -22,6 +23,7 @@ export function GraphView({
   onNodeClick,
   onNodeHover,
   layout = 'cose',
+  groupByEventType = false,
   className = '',
 }: GraphViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -62,7 +64,9 @@ export function GraphView({
         source: edge.source,
         target: edge.target,
         type: edge.type,
-        weight: (edge as any).weight || 1,
+        weight: (edge as any).weight || edge.strength || 1,
+        strength: edge.strength || edge.properties?.score || 0.5, // Evolution score
+        score: edge.properties?.score || edge.strength || 0.5,
         edgeData: edge,
       },
     }));
@@ -136,7 +140,7 @@ export function GraphView({
 
       initializeCytoscape(cyNodes, cyEdges);
     }, 10);
-  }, [graphData, layout]); // Removed onNodeClick, onNodeHover to prevent re-init on click
+  }, [graphData, layout, groupByEventType]); // Re-init when grouping changes
 
   const initializeCytoscape = (cyNodes: any[], cyEdges: any[]) => {
     if (!containerRef.current || !isMountedRef.current) {
@@ -170,23 +174,45 @@ export function GraphView({
                 return colorMap[severity] || '#22c55e';
               }
             },
-            'label': 'data(label)',
+            'label': (ele: any) => {
+              const label = ele.data('label');
+              const group = ele.data('group');
+
+              // Truncate long labels intelligently
+              if (label.length > 30) {
+                // For entities, show first 25 chars
+                if (group === 'entity') {
+                  return label.substring(0, 25) + '...';
+                }
+                // For events, show first 28 chars
+                return label.substring(0, 28) + '...';
+              }
+              return label;
+            },
             'width': (ele: any) => {
               const group = ele.data('group');
-              return group === 'entity' ? 60 : 50;
+              return group === 'entity' ? 70 : 55;
             },
             'height': (ele: any) => {
               const group = ele.data('group');
-              return group === 'entity' ? 60 : 50;
+              return group === 'entity' ? 70 : 55;
             },
-            'font-size': 9,
+            'font-size': (ele: any) => {
+              const group = ele.data('group');
+              // Entities get slightly larger labels
+              return group === 'entity' ? 10 : 9;
+            },
             'text-valign': 'center',
             'text-halign': 'center',
-            'text-wrap': 'ellipsis',
-            'text-max-width': '100px',
+            'text-wrap': 'wrap',
+            'text-max-width': (ele: any) => {
+              const group = ele.data('group');
+              return group === 'entity' ? '65px' : '50px';
+            },
             'color': '#ffffff',
-            'text-outline-color': 'rgba(0,0,0,0.8)',
-            'text-outline-width': 2.5,
+            'text-outline-color': 'rgba(0,0,0,0.9)',
+            'text-outline-width': 3,
+            'font-weight': 600,
             'border-width': 3,
             'border-color': '#ffffff',
             'shape': (ele: any) => {
@@ -205,8 +231,14 @@ export function GraphView({
         {
           selector: 'node:hover',
           style: {
-            'border-width': 3,
+            'border-width': 5,
             'border-color': '#a5b4fc',
+            'font-size': (ele: any) => {
+              const group = ele.data('group');
+              // Slightly larger on hover
+              return group === 'entity' ? 11 : 10;
+            },
+            'z-index': 999,
           },
         },
         {
@@ -214,21 +246,52 @@ export function GraphView({
           style: {
             'width': (ele: any) => {
               const edgeType = ele.data('type');
-              if (edgeType === 'evolves_to') return 2.5;
-              if (edgeType === 'involves') return 1.5;
-              return 1;
+              const score = ele.data('score') || 0.5;
+
+              // Base width by type, scaled by score
+              if (edgeType === 'evolves_to') {
+                // Evolution links: 1.5-4px based on score (0.5-1.0 → 1.5-4px)
+                return 1.5 + (score * 2.5);
+              }
+              if (edgeType === 'involves') {
+                // Entity connections: 1-2.5px based on score
+                return 1 + (score * 1.5);
+              }
+              // Other edges: 0.8-1.5px
+              return 0.8 + (score * 0.7);
             },
             'line-color': (ele: any) => {
               const edgeType = ele.data('type');
-              if (edgeType === 'evolves_to') return 'rgba(255,255,255,0.7)';
-              if (edgeType === 'involves') return 'rgba(100,200,255,0.4)'; // Light blue for entity connections
-              return 'rgba(255,255,255,0.3)';
+              const score = ele.data('score') || 0.5;
+
+              if (edgeType === 'evolves_to') {
+                // Stronger evolution = more opaque white
+                const alpha = 0.4 + (score * 0.4); // 0.4-0.8
+                return `rgba(255,255,255,${alpha})`;
+              }
+              if (edgeType === 'involves') {
+                // Stronger entity connection = more opaque blue
+                const alpha = 0.25 + (score * 0.35); // 0.25-0.6
+                return `rgba(100,200,255,${alpha})`;
+              }
+              // Other edges
+              const alpha = 0.2 + (score * 0.2); // 0.2-0.4
+              return `rgba(255,255,255,${alpha})`;
             },
             'target-arrow-color': (ele: any) => {
               const edgeType = ele.data('type');
-              if (edgeType === 'evolves_to') return 'rgba(255,255,255,0.7)';
-              if (edgeType === 'involves') return 'rgba(100,200,255,0.4)';
-              return 'rgba(255,255,255,0.3)';
+              const score = ele.data('score') || 0.5;
+
+              if (edgeType === 'evolves_to') {
+                const alpha = 0.4 + (score * 0.4);
+                return `rgba(255,255,255,${alpha})`;
+              }
+              if (edgeType === 'involves') {
+                const alpha = 0.25 + (score * 0.35);
+                return `rgba(100,200,255,${alpha})`;
+              }
+              const alpha = 0.2 + (score * 0.2);
+              return `rgba(255,255,255,${alpha})`;
             },
             'target-arrow-shape': (ele: any) => {
               const edgeType = ele.data('type');
@@ -237,9 +300,19 @@ export function GraphView({
             'curve-style': 'bezier',
             'opacity': (ele: any) => {
               const edgeType = ele.data('type');
-              if (edgeType === 'evolves_to') return 0.8;
-              if (edgeType === 'involves') return 0.5;
-              return 0.4;
+              const score = ele.data('score') || 0.5;
+
+              // Edge opacity scaled by score
+              if (edgeType === 'evolves_to') {
+                // Evolution: 0.5-0.95 opacity
+                return 0.5 + (score * 0.45);
+              }
+              if (edgeType === 'involves') {
+                // Entity connections: 0.35-0.7 opacity
+                return 0.35 + (score * 0.35);
+              }
+              // Other: 0.25-0.5 opacity
+              return 0.25 + (score * 0.25);
             },
           },
         },
@@ -253,8 +326,8 @@ export function GraphView({
       ],
       layout: layout === 'cose' ? {
         name: 'cose',
-        // Disable component separation - treat all as one graph
-        componentSpacing: 40,
+        // Component spacing based on grouping mode
+        componentSpacing: groupByEventType ? 100 : 40,
         nodeOverlap: 20,
         // Increase repulsion to spread nodes out
         nodeRepulsion: function( node: any ){
@@ -262,20 +335,49 @@ export function GraphView({
           return node.data('group') === 'entity' ? 12000 : 8000;
         },
         idealEdgeLength: function( edge: any ){
+          if (groupByEventType) {
+            // When grouping by type, check if source and target are both events of same type
+            const sourceNode = edge.source();
+            const targetNode = edge.target();
+            const sourceType = sourceNode.data('type');
+            const targetType = targetNode.data('type');
+            const sourceGroup = sourceNode.data('group');
+            const targetGroup = targetNode.data('group');
+
+            // Same event type = shorter edge (pull together)
+            if (sourceGroup === 'event' && targetGroup === 'event' && sourceType === targetType) {
+              return 60;
+            }
+          }
+
           // Make event-entity edges shorter to pull entities into the graph
           return edge.data('type') === 'involves' ? 80 : 120;
         },
         edgeElasticity: function( edge: any ){
+          if (groupByEventType) {
+            const sourceNode = edge.source();
+            const targetNode = edge.target();
+            const sourceType = sourceNode.data('type');
+            const targetType = targetNode.data('type');
+            const sourceGroup = sourceNode.data('group');
+            const targetGroup = targetNode.data('group');
+
+            // Same event type = higher elasticity (stronger attraction)
+            if (sourceGroup === 'event' && targetGroup === 'event' && sourceType === targetType) {
+              return 200;
+            }
+          }
+
           return edge.data('type') === 'involves' ? 150 : 100;
         },
         nestingFactor: 5,
-        gravity: 0.8,
+        gravity: groupByEventType ? 0.5 : 0.8,
         numIter: 2000,
         initialTemp: 500,
         coolingFactor: 0.95,
         minTemp: 1.0,
-        // Randomize initial positions to avoid clustering
-        randomize: true,
+        // Randomize initial positions to avoid clustering (unless grouping by type)
+        randomize: !groupByEventType,
         animate: true,
         animationDuration: 500,
       } : LAYOUTS[layout],
