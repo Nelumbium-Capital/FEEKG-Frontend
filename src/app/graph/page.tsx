@@ -19,11 +19,13 @@ export default function GraphPage() {
     searchQuery: '',
   });
   const [layout, setLayout] = useState<'cose' | 'circle' | 'grid' | 'breadthfirst'>('cose');
+  const [nodeLimit, setNodeLimit] = useState<number>(100);
+  const [minScore, setMinScore] = useState<number>(0.5);
 
   // Fetch graph data (entities + events + edges) from AllegroGraph
   const { data: graphData, isLoading, error } = useQuery({
-    queryKey: ['graph-data', 500, 0.3],
-    queryFn: () => fetchGraphData(500, 0.3),
+    queryKey: ['graph-data', nodeLimit, minScore],
+    queryFn: () => fetchGraphData(nodeLimit, minScore),
   });
 
   const nodes = graphData?.nodes || [];
@@ -94,19 +96,54 @@ export default function GraphPage() {
               </p>
             </div>
 
-            {/* Layout Controls */}
-            <div className="flex items-center gap-3">
-              <label className="text-sm text-gray-600 font-medium">Layout:</label>
-              <select
-                value={layout}
-                onChange={(e) => setLayout(e.target.value as any)}
-                className="px-4 py-2.5 border border-gray-300/50 rounded-xl text-sm bg-gray-50/50 hover:bg-white focus:bg-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 shadow-apple"
-              >
-                <option value="cose">Force-Directed</option>
-                <option value="circle">Circle</option>
-                <option value="grid">Grid</option>
-                <option value="breadthfirst">Hierarchical</option>
-              </select>
+            {/* Graph Controls */}
+            <div className="flex items-center gap-6">
+              {/* Node Limit Slider */}
+              <div className="flex items-center gap-3">
+                <label className="text-sm text-gray-600 font-medium whitespace-nowrap">
+                  Nodes: <span className="text-blue-600 font-bold">{nodeLimit}</span>
+                </label>
+                <input
+                  type="range"
+                  min="10"
+                  max="500"
+                  step="10"
+                  value={nodeLimit}
+                  onChange={(e) => setNodeLimit(Number(e.target.value))}
+                  className="w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                />
+              </div>
+
+              {/* Min Score Slider */}
+              <div className="flex items-center gap-3">
+                <label className="text-sm text-gray-600 font-medium whitespace-nowrap">
+                  Min Score: <span className="text-blue-600 font-bold">{minScore.toFixed(2)}</span>
+                </label>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="1.0"
+                  step="0.05"
+                  value={minScore}
+                  onChange={(e) => setMinScore(Number(e.target.value))}
+                  className="w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                />
+              </div>
+
+              {/* Layout Selector */}
+              <div className="flex items-center gap-3">
+                <label className="text-sm text-gray-600 font-medium">Layout:</label>
+                <select
+                  value={layout}
+                  onChange={(e) => setLayout(e.target.value as any)}
+                  className="px-4 py-2.5 border border-gray-300/50 rounded-xl text-sm bg-gray-50/50 hover:bg-white focus:bg-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 shadow-apple"
+                >
+                  <option value="cose">Force-Directed</option>
+                  <option value="circle">Circle</option>
+                  <option value="grid">Grid</option>
+                  <option value="breadthfirst">Hierarchical</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -152,19 +189,32 @@ export default function GraphPage() {
 
             {/* Stats Card */}
             <div className="mt-8 bg-white/80 backdrop-blur-xl rounded-2xl shadow-apple-lg p-8 border border-gray-100/50">
-              <h3 className="text-sm font-semibold text-gray-900 mb-6">Statistics</h3>
+              <h3 className="text-sm font-semibold text-gray-900 mb-6">Graph Statistics</h3>
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Total Events</span>
-                  <span className="text-lg font-bold text-gray-900">{stats.total}</span>
+                  <span className="text-sm text-gray-600">Total Nodes</span>
+                  <span className="text-lg font-bold text-gray-900">{nodes.length}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Filtered</span>
-                  <span className="text-lg font-bold text-blue-600">{stats.filtered}</span>
+                  <span className="text-sm text-gray-600">Total Edges</span>
+                  <span className="text-lg font-bold text-blue-600">{edges.length}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Event Types</span>
-                  <span className="text-lg font-bold text-gray-900">{eventTypes.length}</span>
+                  <span className="text-sm text-gray-600">Events</span>
+                  <span className="text-lg font-bold text-green-600">{stats.total}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Entities</span>
+                  <span className="text-lg font-bold text-purple-600">{nodes.filter(n => n.group === 'entity').length}</span>
+                </div>
+                <div className="h-px bg-gray-200 my-4"></div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-500">Node Limit</span>
+                  <span className="text-sm font-semibold text-gray-700">{nodeLimit}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-500">Min Score</span>
+                  <span className="text-sm font-semibold text-gray-700">{minScore.toFixed(2)}</span>
                 </div>
               </div>
             </div>
