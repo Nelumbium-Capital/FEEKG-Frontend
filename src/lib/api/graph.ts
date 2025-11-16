@@ -11,8 +11,7 @@ export async function fetchGraphData(): Promise<GraphData> {
 }
 
 /**
- * Fetch graph statistics
- * Note: Using events endpoint since /api/info has Cypher queries
+ * Fetch graph statistics from AllegroGraph
  */
 export async function fetchGraphStats(): Promise<GraphStats> {
   // Use mock data if enabled
@@ -22,18 +21,10 @@ export async function fetchGraphStats(): Promise<GraphStats> {
     });
   }
 
-  // Fetch first page of events to get total count
-  const response = await apiClient<{ data: any; count: number }>('/api/events');
+  // Fetch accurate stats from backend
+  const response = await apiClient<{ status: string; data: GraphStats }>('/api/stats');
 
-  return {
-    totalNodes: 4416, // From AllegroGraph
-    totalEdges: 74238,
-    totalEvents: response.count || 0,
-    totalEntities: 18,
-    totalRelationships: 74238,
-    evolutionLinks: 154,
-    topEntities: [],
-  };
+  return response.data;
 }
 
 /**
