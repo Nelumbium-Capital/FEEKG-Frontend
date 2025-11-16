@@ -154,7 +154,7 @@ export function GraphView({
         {
           selector: 'node',
           style: {
-            'background-color': (ele) => {
+            'background-color': (ele: any) => {
               const group = ele.data('group');
               if (group === 'entity') {
                 // Entities: vibrant blue
@@ -171,11 +171,11 @@ export function GraphView({
               }
             },
             'label': 'data(label)',
-            'width': (ele) => {
+            'width': (ele: any) => {
               const group = ele.data('group');
               return group === 'entity' ? 60 : 50;
             },
-            'height': (ele) => {
+            'height': (ele: any) => {
               const group = ele.data('group');
               return group === 'entity' ? 60 : 50;
             },
@@ -183,14 +183,13 @@ export function GraphView({
             'text-valign': 'center',
             'text-halign': 'center',
             'text-wrap': 'ellipsis',
-            'text-max-width': 100,
+            'text-max-width': '100px',
             'color': '#ffffff',
             'text-outline-color': 'rgba(0,0,0,0.8)',
             'text-outline-width': 2.5,
             'border-width': 3,
             'border-color': '#ffffff',
-            'box-shadow': '0 4px 12px rgba(0,0,0,0.3)',
-            'shape': (ele) => {
+            'shape': (ele: any) => {
               const group = ele.data('group');
               return group === 'entity' ? 'rectangle' : 'ellipse';
             },
@@ -213,30 +212,30 @@ export function GraphView({
         {
           selector: 'edge',
           style: {
-            'width': (ele) => {
+            'width': (ele: any) => {
               const edgeType = ele.data('type');
               if (edgeType === 'evolves_to') return 2.5;
               if (edgeType === 'involves') return 1.5;
               return 1;
             },
-            'line-color': (ele) => {
+            'line-color': (ele: any) => {
               const edgeType = ele.data('type');
               if (edgeType === 'evolves_to') return 'rgba(255,255,255,0.7)';
               if (edgeType === 'involves') return 'rgba(100,200,255,0.4)'; // Light blue for entity connections
               return 'rgba(255,255,255,0.3)';
             },
-            'target-arrow-color': (ele) => {
+            'target-arrow-color': (ele: any) => {
               const edgeType = ele.data('type');
               if (edgeType === 'evolves_to') return 'rgba(255,255,255,0.7)';
               if (edgeType === 'involves') return 'rgba(100,200,255,0.4)';
               return 'rgba(255,255,255,0.3)';
             },
-            'target-arrow-shape': (ele) => {
+            'target-arrow-shape': (ele: any) => {
               const edgeType = ele.data('type');
               return edgeType === 'evolves_to' ? 'triangle' : 'none';
             },
             'curve-style': 'bezier',
-            'opacity': (ele) => {
+            'opacity': (ele: any) => {
               const edgeType = ele.data('type');
               if (edgeType === 'evolves_to') return 0.8;
               if (edgeType === 'involves') return 0.5;

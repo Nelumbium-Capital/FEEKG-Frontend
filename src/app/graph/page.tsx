@@ -30,12 +30,13 @@ export default function GraphPage() {
   const edges = graphData?.edges || [];
 
   // Extract events for filtering
-  const events = nodes.filter(n => n.group === 'event').map(n => ({
+  const events: Event[] = nodes.filter(n => n.group === 'event').map(n => ({
     eventId: n.id,
     label: n.label,
     type: n.type,
-    ...n.data
-  }));
+    date: '', // Default empty date
+    ...(n.data || {})
+  } as Event));
 
   // Get unique event types for filter
   const eventTypes = useMemo(() => {

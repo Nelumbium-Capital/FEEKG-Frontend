@@ -21,6 +21,7 @@ export interface Node {
   label: string;
   type: string;
   group: 'entity' | 'event' | 'risk';
+  data?: Record<string, any>;  // Optional data field for additional properties
 }
 
 export interface Edge {

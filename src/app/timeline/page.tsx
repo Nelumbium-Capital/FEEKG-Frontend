@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
 import { fetchPaginatedEvents } from '@/lib/api/events';
 import { Event } from '@/lib/api/types';
 import { EventCard } from '@/components/EventCard';
 
-export default function TimelinePage() {
+function TimelineContent() {
   const searchParams = useSearchParams();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [dateFilter, setDateFilter] = useState({
@@ -245,5 +245,13 @@ export default function TimelinePage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function TimelinePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <TimelineContent />
+    </Suspense>
   );
 }
